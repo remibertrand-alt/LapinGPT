@@ -2,9 +2,9 @@
   command = "npm run build"
   publish = "dist"
 [functions]
-  directory = "netlify/functions"
+  directory = "netfly/functions"
   node_bundler = "esbuild"
 [[redirects]]
   from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  to = "/.netfly/functions/:splat"
   status = 200
