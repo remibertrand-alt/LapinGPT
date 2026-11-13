@@ -1,111 +1,13 @@
-
-export const handler = async (event) => {
-  const headers = {
-    "Content-Type": "application/json",
-    "Cache-Control": "no-store"
-  };
-
-  if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      headers,
-      body: JSON.stringify({ error: "Méthode non autorisée" })
-    };
-  }
-
-  try {
-    const apiKey = process.env.GROQ_API_KEY;
-    const model = process.env.GROQ_MODEL;
-
-    if (!apiKey || !model) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({
-          error: "Configuration Groq manquante dans Netlify"
-        })
-      };
-    }
-
-    const data = JSON.parse(event.body || "{}");
-    const message = data.message;
-
-    if (typeof message !== "string" || !message.trim()) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Message vide" })
-      };
-    }
-
-    if (message.length > 4000) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: "Message trop long" })
-      };
-    }
-
-    const response = await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            {
-              role: "system",
-              content: "Tu es Lapin GPT, un assistant sympathique, chaleureux et serviable. Réponds en français par défaut."
-            },
-            {
-              role: "user",
-              content: message.trim()
-            }
-          ],
-          temperature: 0.7,
-          max_tokens: 800
-        })
-      }
-    );
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error("Erreur Groq :", response.status, result.error?.message);
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          error: "Le service IA n'a pas pu répondre."
-        })
-      };
-    }
-
-    const answer = result.choices?.[0]?.message?.content;
-
-    if (!answer) {
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({ error: "Réponse IA vide" })
-      };
-    }
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({ answer })
-    };
-  } catch (error) {
-    console.error("Erreur de la fonction chat :", error);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: "Erreur interne du serveur" })
-    };
-  }
-};
+ $('#chat-form')?.addEventListener('submit',sendChat);
+ document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buy(b.dataset.buy));
+ document.querySelectorAll('[data-equip]').forEach(b=>b.onclick=()=>equip(b.dataset.equip));
+ $('#creator-login')?.addEventListener('submit',creatorLogin);
+}
+function addMessage(content,who){const row=document.createElement('div');row.className='msg '+(who==='user'?'mine':'');if(who==='assistant'){const m=document.createElement('span');m.textContent='🐰';row.append(m)}const b=document.createElement('div');b.className='bubble';b.textContent=content;row.append(b);$('#messages').append(row);$('#messages').scrollTop=$('#messages').scrollHeight}
+async function sendChat(e){e.preventDefault();const input=$('#question'),message=input.value.trim();if(!message)return;addMessage(message,'user');input.value='';const wait=document.createElement('div');wait.id='waiting';wait.className='msg';wait.innerHTML='<span>🐰</span><div class="bubble">Je réfléchis…</div>';$('#messages').append(wait);
+ try{const d=await api('chat',{message,history:history.slice(-8)});$('#waiting')?.remove();addMessage(d.reply,'assistant');history.push({role:'user',content:message},{role:'assistant',content:d.reply});await boot();}catch(x){$('#waiting')?.remove();addMessage(x.message,'assistant')}}
+async function buy(id){try{const d=await api('game',{action:'buy',skinId:id});toast(d.message);await boot()}catch(e){toast(e.message)}}
+async function equip(id){try{await api('game',{action:'equip',skinId:id});await boot();}catch(e){toast(e.message)}}
+async function creatorLogin(e){e.preventDefault();const pass=$('#creator-password').value;const c=$('#creator-content');c.textContent='Connexion…';
+ try{adminPass=pass;const d=await api('creator',{password:pass,action:'dashboard'});users=d.users||[];renderAdmin();}catch(x){c.textContent=x.message}}
+function renderAdmin(){const c=$('#creator-content');c.innerHTML=`<div class="admin"><h3>Tableau de bord</h3><div class="admin-stats"><span>👥 ${users.length
