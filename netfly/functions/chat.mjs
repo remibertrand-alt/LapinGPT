@@ -2,7 +2,7 @@
  document.querySelectorAll('[data-buy]').forEach(b=>b.onclick=()=>buy(b.dataset.buy));
  document.querySelectorAll('[data-equip]').forEach(b=>b.onclick=()=>equip(b.dataset.equip));
  $('#creator-login')?.addEventListener('submit',creatorLogin);
-}
+};
 function addMessage(content,who){const row=document.createElement('div');row.className='msg '+(who==='user'?'mine':'');if(who==='assistant'){const m=document.createElement('span');m.textContent='🐰';row.append(m)}const b=document.createElement('div');b.className='bubble';b.textContent=content;row.append(b);$('#messages').append(row);$('#messages').scrollTop=$('#messages').scrollHeight}
 async function sendChat(e){e.preventDefault();const input=$('#question'),message=input.value.trim();if(!message)return;addMessage(message,'user');input.value='';const wait=document.createElement('div');wait.id='waiting';wait.className='msg';wait.innerHTML='<span>🐰</span><div class="bubble">Je réfléchis…</div>';$('#messages').append(wait);
  try{const d=await api('chat',{message,history:history.slice(-8)});$('#waiting')?.remove();addMessage(d.reply,'assistant');history.push({role:'user',content:message},{role:'assistant',content:d.reply});await boot();}catch(x){$('#waiting')?.remove();addMessage(x.message,'assistant')}}
