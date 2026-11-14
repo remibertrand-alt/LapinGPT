@@ -65,7 +65,7 @@ async function api(path, body = {}) {
   let response;
 
   try {
-    response = await fetch(`/api/${path}`, {
+    response = await fetch(`/.netlify/functions/${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
