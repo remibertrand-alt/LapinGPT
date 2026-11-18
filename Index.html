@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Lapin GPT</title>
+<style>
+:root{--bg:#101526;--p:#1a2340;--l:#354467;--t:#f4f6ff;--m:#b2bdd8;--pk:#ff9fc8;--g:#ffd66b;--ok:#286247;--ko:#6b2f45;color-scheme:dark}
+*{box-sizing:border-box}html{min-height:100%}
+body{margin:0;min-height:100vh;color:var(--t);font:15px/1.5 system-ui,Segoe UI,Arial,sans-serif;background:radial-gradient(circle at 10% 0,#3c315f,transparent 40%) var(--bg) fixed;background-size:cover}
+button,input,textarea{font:inherit}
+button{border:0;border-radius:12px;padding:11px 15px;background:var(--pk);color:#25152a;font-weight:800;cursor:pointer;transition:filter .12s,transform .12s}
+button:not(:disabled):hover{filter:brightness(1.1)}button:not(:disabled):active{transform:scale(.98)}button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+.sec{background:#2b385b;color:var(--t);border:1px solid var(--l)}.dan{background:#563346;color:#ffe2ee;border:1px solid #7a4660}
+header{position:sticky;top:0;z-index:5;display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px;padding:12px max(16px,calc((100vw - 1100px)/2));background:#11182bee;border-bottom:1px solid #ffffff1b;backdrop-filter:blur(12px)}
+.logo{font-size:21px;font-weight:900}.logo b{color:var(--pk)}
+.money{background:#332d26;border:1px solid #705b35;border-radius:99px;padding:6px 13px;color:var(--g);font-weight:900}
+nav{display:flex;gap:4px;flex-wrap:wrap}nav button{background:transparent;color:var(--m);padding:8px 10px;border:1px solid transparent}nav button.on{background:#2a3555;border-color:var(--l);color:#fff}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 90px}
+.panel{background:#1a2340ee;border:1px solid var(--l);border-radius:20px;padding:22px;margin-bottom:16px}
+h1{margin:4px 0 6px;font-size:30px}h2{margin:0 0 8px}.eb{color:var(--pk);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}.mu{color:var(--m)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px;margin-top:14px}
+.it{background:#101831;border:1px solid var(--l);border-radius:16px;padding:12px}.it.eq{border-color:var(--pk)}
+.art{height:120px;border-radius:12px;background:#222e50;display:grid;place-items:center;font-size:60px;overflow:hidden;margin-bottom:8px}.art img{width:100%;height:100%;object-fit:contain}
+.it button{width:100%;margin-top:7px}.tag{display:inline-block;background:#2a3555;border-radius:99px;padding:1px 9px;font-size:12px;color:var(--m)}
+.stage{display:grid;place-items:center;height:250px;border-radius:16px;background:#222e50;font-size:130px;overflow:hidden}.stage img{max-width:85%;max-height:100%;object-fit:contain}
+.ans{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0}.ans button{background:#2b385b;color:var(--t);border:1px solid var(--l);padding:14px}
+.ans button:disabled{opacity:.5}.ans .g{background:var(--ok);opacity:1}.ans .b{background:var(--ko);opacity:1}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+input,textarea{width:100%;background:#0e1427;color:var(--t);border:1px solid var(--l);border-radius:10px;padding:10px;margin:4px 0 10px}
+label{font-size:13px;color:var(--m);font-weight:700}.row{display:flex;gap:10px;flex-wrap:wrap}.row>*{flex:1;min-width:130px}
+.li{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #ffffff14}.li button{flex:none;padding:7px 11px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#f4f0ff;color:#1c1530;padding:11px 18px;border-radius:99px;font-weight:800;opacity:0;pointer-events:none;transition:.2s;z-index:9}#toast.on{opacity:1}
+@media(max-width:760px){.two,.ans{grid-template-columns:1fr}.stage{height:200px;font-size:105px}}
+</style></head><body>
+<header><div class="logo">🐰 Lapin <b>GPT</b></div><nav id="nav"></nav><div class="money">🥕 <span id="c">0</span></div></header>
+<main id="v"></main><div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';');
+const K='lapin_v2',KB='lapin_bg',KC='lapin_cat',CODE='0506',REWARD=20;
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch{return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));return true}catch{return false}};
+
+// Variables globales du joueur + pseudo
+let G={pseudo:'',carrots:30,owned:['classic'],eq:'classic',day:'',done:[],solved:0,...ld(K,{})};
+let S={skins:[],events:[],ideas:[]},db=null,page='home',cur=null,picked=null,wi=false,unlocked=false;
+try{unlocked=sessionStorage.getItem('u')==='1'}catch{}
+
+const today=()=>new Date().toLocaleDateString('sv-SE');
+const toast=t=>{const e=$('#toast');e.textContent=t;e.className='on';clearTimeout(toast.t);toast.t=setTimeout(()=>e.className='',2600)};
+
+/* ---------- Sauvegarde locale et distante (Serveur) ---------- */
+async function save(){
+  sv(K,G);
+  $('#c').textContent=G.carrots;
+  // Si un pseudo est configuré et que la base de données est active, on sauvegarde sur le serveur
+  if(db && G.pseudo){
+    try{
+      await db.collection('users').doc(G.pseudo.toLowerCase()).set(G);
+    }catch(e){console.error("Erreur de synchro serveur", e);}
+  }
+}
+
+async function loginPlayer(pseudoInput){
+  const pseudo = pseudoInput.trim();
+  if(!pseudo) return toast('Entre un pseudo valide !');
+  G.pseudo = pseudo;
+  
+  if(db){
+    try{
+      const doc = await db.collection('users').doc(pseudo.toLowerCase()).get();
+      if(doc.exists){
+        // Récupération des données du serveur
+        const remoteData = doc.data();
+        G = { ...G, ...remoteData };
+        toast('Compte retrouvé ! Bon retour, ' + pseudo + ' 🐰');
+      } else {
+        // Premier enregistrement sur le serveur
+        await db.collection('users').doc(pseudo.toLowerCase()).set(G);
+        toast('Nouveau compte créé sur le serveur !');
+      }
+    }catch(e){
+      toast('Erreur de connexion au serveur.');
+    }
+  } else {
+    toast('Connecté en mode local avec le pseudo : ' + pseudo);
+  }
+  save();
+  render();
+}
+
+/* ---------- Données partagées (db) ou locales ---------- */
+async function init(){
+  try{db=await window.claude?.use('db')}catch{db=null}
+  if(db){
+    ['skins','events'].forEach(n=>db.collection(n).onSnapshot(q=>{S[n]=q.docs.map(d=>({...d.data(),id:d.id}));soft()},()=>{}));
+    // Si on a déjà un pseudo enregistré, on recharge ses données au démarrage
+    if(G.pseudo) loginPlayer(G.pseudo);
+  } else {
+    S={...S,...ld(KC,{})};
+  }
+  render()
+}
+function watchIdeas(){if(db&&!wi){wi=true;db.collection('ideas').onSnapshot(q=>{S.ideas=q.docs.map(d=>({...d.data(),id:d.id})).sort((a,b)=>b.date>a.date?1:-1);soft()},()=>{})}}
+async function put(n,o){o.id=o.id||Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+  if(db)await db.collection(n).doc(o.id).set(o);else{S[n]=[...S[n].filter(x=>x.id!==o.id),o];sv(KC,S)}render()}
+async function rm(n,id){try{if(db)await db.collection(n).doc(id).delete();else{S[n]=S[n].filter(x=>x.id!==id);sv(KC,S)}render()}catch{toast('Suppression refusée.')}}
+function img(f,max,type,q){return new Promise((ok,ko)=>{const i=new Image,u=URL.createObjectURL(f);i.onload=()=>{const r=Math.min(1,max/Math.max(i.width,i.height)),c=document.createElement('canvas');c.width=i.width*r;c.height=i.height*r;c.getContext('2d').drawImage(i,0,0,c.width,c.height);URL.revokeObjectURL(u);ok(c.toDataURL(type,q))};i.onerror=()=>ko();i.src=u})}
+
+/* ---------- Skins ---------- */
+const CLASSIC={id:'classic',name:'Lapin classique',emoji:'🐰',price:0,img:''};
+const evOn=e=>e.start<=today()&&today()<=e.end;
+const evSkin=e=>({...e.sk,id:'ev_'+e.id,ev:e.name});
+const allSkins=()=>[CLASSIC,...S.skins,...S.events.map(evSkin)];
+const skin=id=>allSkins().find(s=>s.id===id)||CLASSIC;
+const art=s=>s.img?`<img src="${esc(s.img)}" alt="">`:esc(s.emoji||'🐰');
+function buy(id){const s=skin(id);if(G.owned.includes(id))return toast('Déjà possédé : rien débité.');
+  const ev=S.events.find(e=>'ev_'+e.id===id);if(ev&&!evOn(ev))return toast('Événement terminé.');
+  const p=Math.max(0,+s.price||0);if(G.carrots<p)return toast('Il te manque '+(p-G.carrots)+' 🥕');
+  G.carrots-=p;G.owned.push(id);save();render();toast('Skin débloqué ! −'+p+' 🥕')}
+const equip=id=>{G.eq=id;save();render();toast('Skin équipé !')};
+function card(s,m){const own=G.owned.includes(s.id);let b;
+  if(m==='closet')b=`<button ${G.eq===s.id?'disabled':''} onclick="equip('${s.id}')">${G.eq===s.id?'Équipé':'Équiper'}</button>`;
+  else b=`<button ${own?'disabled':''} onclick="buy('${s.id}')">${own?'Débloqué':'Acheter · '+s.price+' 🥕'}</button>`;
+  if(m==='shop'&&unlocked)b+=`<button class="dan" onclick="delSkin('${s.id}')">🗑️ Supprimer</button>`;
+  return `<article class="it ${m==='closet'&&G.eq===s.id?'eq':''}"><div class="art">${art(s)}</div>${s.ev?`<span class="tag">${esc(s.ev)}</span>`:''}<b>${esc(s.name)}</b><div class="mu">${m==='closet'?'Dans ta collection':s.price+' 🥕'}</div>${b}</article>`}
+function delSkin(id){if(confirm('Supprimer ce skin pour tout le monde ?'))rm('skins',id)}
+
+/* ---------- Énigmes ---------- */
+const Q=[['Suite : 2, 6, 12, 20, 30, … ?','42','36','40','44'],['Suite : 1, 1, 2, 3, 5, 8, … ?','13','11','12','15'],
+['Un lapin mange la moitié de ses carottes puis encore 2. Il lui en reste 5. Combien en avait-il ?','16','10','12','14'],
+['5 lapins creusent 5 terriers en 5 jours. Combien de jours pour 100 lapins et 100 terriers ?','5','1','20','100'],
+['Je suis plein de trous et pourtant je retiens l’eau. Que suis-je ?','Une éponge','Une passoire','Un seau','Un filet'],
+['Plus il y en a, moins tu vois. Que suis-je ?','L’obscurité','La lumière','Le brouillard','Le sable'],
+['Qu’est-ce qui monte toujours mais ne redescend jamais ?','L’âge','Un ballon','La marée','Un escalier'],
+['Combien de fois peut-on soustraire 5 de 25 ?','Une seule fois','5 fois','4 fois','Jamais'],
+['Un père a 4 fois l’âge de son fils. Dans 20 ans il aura 2 fois son âge. Âge du fils ?','10 ans','5 ans','8 ans','12 ans'],
+['Suite : 1, 4, 9, 16, 25, … ?','36','30','35','49'],
+['Un train électrique roule vers le nord, vent d’ouest. Où va la fumée ?','Il n’y a pas de fumée','Vers l’est','Vers le nord','Vers le sud'],
+['Je parle sans bouche et j’entends sans oreilles. Que suis-je ?','Un écho','Le vent','Un fantôme','Un téléphone'],
+['Combien de mois ont 28 jours ?','12','1','2','4'],
+['17 lapins, tous s’enfuient sauf 9. Combien en reste-t-il ?','9','8','17','0'],
+['Si après-demain est jeudi, quel jour était hier ?','Lundi','Dimanche','Mardi','Mercredi'],
+['Un champ de carottes double chaque jour et est plein au jour 30. Quand est-il à moitié plein ?','Jour 29','Jour 15','Jour 20','Jour 28'],
+['Combien font 7 × 8 − 6 × 9 ?','2','1','4','6'],['Suite de lettres : A, C, F, J, O, … ?','U','T','V','W'],
+['Un escargot monte 3 m le jour, glisse de 2 m la nuit, dans un puits de 10 m. Combien de jours ?','8','7','9','10'],
+['Dans une course tu dépasses le deuxième. Ta position ?','Deuxième','Premier','Troisième','Impossible à savoir'],
+['Qu’est-ce qui grandit quand on lui enlève des choses ?','Un trou','Un arbre','Une dette','Une ombre'],
+['Combien d’arêtes a un cube ?','12','6','8','16'],['Le produit de trois nombres consécutifs est 120. Le plus grand ?','6','5','7','8'],
+['Nombre à 2 chiffres : dizaines = triple des unités, somme 12. Lequel ?','93','84','39','62'],
+['Qu’est-ce qui est à toi mais que les autres utilisent plus que toi ?','Ton prénom','Ton téléphone','Ta voix','Ton ombre']];
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
+function nextQ(){if(G.day!==today()){G.day=today();G.done=[]}
+  let pool=Q.map((q,i)=>i).filter(i=>!G.done.includes(i));if(pool.length>1&&cur)pool=pool.filter(i=>i!==cur.i);
+  picked=null;if(!pool.length){cur=null;return}const i=pool[Math.random()*pool.length|0],q=Q[i],o=shuf(q.slice(1));cur={i,q:q[0],o,ok:o.indexOf(q[1])}}
+function ans(k){if(picked!==null||!cur)return;picked=k;G.done.push(cur.i);if(k===cur.ok){G.carrots+=REWARD;G.solved++}save();render()}
+
+/* ---------- Fond d'écran ---------- */
+function applyBg(){const d=ld(KB,'');document.body.style.backgroundImage=d?`linear-gradient(#101526b0,#101526d8),url(${d})`:''}
+async function setBg(f){if(!f)return;try{const d=await img(f,1600,'image/jpeg',.7);if(!sv(KB,d))return toast('Image trop lourde.');applyBg();toast('Arrière-plan changé !')}catch{toast('Image illisible.')}}
+function resetBg(){localStorage.removeItem(KB);applyBg();toast('Arrière-plan par défaut.')}
+
+/* ---------- Création (code) ---------- */
+function unlock(){if($('#code').value===CODE){unlocked=true;try{sessionStorage.setItem('u','1')}catch{};watchIdeas();render()}else{toast('Code incorrect.');$('#code').value=''}}
+function lock(){unlocked=false;try{sessionStorage.removeItem('u')}catch{};go('home')}
+const val=i=>$('#'+i).value.trim();
+async function mkSkin(p,ev){const n=val(p+'n');if(!n)return null;const f=$('#'+p+'f').files[0];
+  return{name:n,emoji:val(p+'e')||'🐰',price:Math.max(0,+val(p+'p')||0),img:f?await img(f,256,'image/webp',.85):''}}
+async function addSkin(){try{const s=await mkSkin('s');if(!s)return toast('Donne un nom au skin.');await put('skins',s);toast('Skin ajouté à la boutique !')}catch{toast('Création refusée.')}}
+async function addEvent(){try{const s=await mkSkin('v'),n=val('en'),a=val('ea'),b=val('eb');if(!s||!n||!a||!b)return toast('Remplis le nom, les dates et le skin.');if(b<a)return toast('La fin est avant le début.');
+  await put('events',{name:n,desc:val('ed'),start:a,end:b,sk:s});toast('Événement créé !')}catch{toast('Création refusée.')}}
+async function sendIdea(){const t=val('idea');if(t.length<5)return toast('Décris ton idée en quelques mots.');
+  try{await put('ideas',{text:t.slice(0,600),by:G.pseudo||val('by').slice(0,30)||'Anonyme',date:new Date().toISOString()});$('#idea').value='';toast('Merci pour ton idée ! 💡')}catch{toast('Envoi impossible pour le moment.')}}
+
+/* ---------- Pages ---------- */
+const sf=(p,t)=>`<div class="row"><div><label>Nom</label><input id="${p}n" maxlength="30"></div><div><label>Emoji</label><input id="${p}e" maxlength="4" placeholder="🐰"></div><div><label>Prix 🥕</label><input id="${p}p" type="number" min="0" value="50"></div></div><label>Image (optionnel)</label><input id="${p}f" type="file" accept="image/*">`;
+const PG={
+home:()=>`<div class="two"><div class="panel"><div class="eb">Bienvenue dans ton terrier</div><h1>Ton univers. Ton lapin. 🐰</h1><p class="mu">Résous des énigmes, gagne des carottes, collectionne des skins. Des événements surprise arrivent !</p><p><span class="tag">${G.pseudo?('Connecté en tant que : '+esc(G.pseudo)):'Non connecté (mode local)'}</span></p><p><span class="tag">${G.owned.length} skins</span> <span class="tag">${G.solved} énigmes réussies</span></p><div class="row"><button onclick="go('puzzle')">🧩 Jouer et gagner</button><button class="sec" onclick="go('shop')">🛍️ Boutique</button></div></div>
+<div class="panel"><div class="eb">Ton compagnon</div><div class="stage">${art(skin(G.eq))}</div><p class="mu">${esc(skin(G.eq).name)} — change-le dans le dressing.</p></div></div>
+${S.events.filter(evOn).map(e=>`<div class="panel"><span class="tag">✨ Événement en cours</span> <b>${esc(e.name)}</b> <span class="mu">jusqu’au ${esc(e.end)}</span> <button class="sec" onclick="go('events')">Voir</button></div>`).join('')}`,
+
+// Nouvel onglet Compte / Reconnexion
+account:()=>`<div class="panel" style="max-width:500px;margin:auto"><div class="eb">Sauvegarde & Reconnexion</div><h1>👤 Mon Compte</h1><p class="mu">Entre ton pseudo pour retrouver tes carottes, tes skins et ta progression depuis n'importe quel appareil.</p><label>Ton pseudo</label><input id="login_pseudo" value="${esc(G.pseudo)}" maxlength="30" placeholder="Ex: LapinMalin99"><button onclick="loginPlayer($('#login_pseudo').value)">💾 Se connecter / Sauvegarder</button>${G.pseudo?`<p style="margin-top:15px;color:var(--ok)"><b>Compte actif :</b> ${esc(G.pseudo)}</p>`:'<p style="margin-top:15px;" class="mu">Aucun pseudo enregistré pour l’instant.</p>'}</div>`,
+
+puzzle:()=>`<div class="panel" style="max-width:700px;margin:auto"><div class="eb">Mini-jeu quotidien</div><h1>🧩 Le terrier des énigmes</h1><p class="mu">Une seule tentative par énigme et par jour · +${REWARD} 🥕 par bonne réponse.</p>`+(cur?
+`<h2>${esc(cur.q)}</h2><div class="ans">${cur.o.map((o,k)=>`<button ${picked!==null?'disabled':''} class="${picked!==null?(k===cur.ok?'g':k===picked?'b':''):''}" onclick="ans(${k})">${esc(o)}</button>`).join('')}</div>`+
+(picked===null?'':`<p><b>${picked===cur.ok?'Bravo ! +'+REWARD+' 🥕':'Raté ! Réponse : '+esc(cur.o[cur.ok])}</b></p>`)+`<button class="sec" onclick="nextQ();render()">Autre énigme</button>`
+:`<h2>Tu as tenté toutes les énigmes du jour ! Reviens demain 🥕</h2>`)+`</div>`,
+shop:()=>`<div class="panel"><div class="eb">Dépense tes carottes</div><h1>🛍️ La boutique</h1><p class="mu">Les skins ajoutés par les créateurs apparaissent ici pour tous les joueurs.</p><div class="grid">${S.skins.map(s=>card(s,'shop')).join('')||'<p class="mu">Aucun skin pour l’instant.</p>'}</div></div>`,
+events:()=>`<div class="panel"><div class="eb">Temps limité</div><h1>🎉 Événements</h1>${S.events.length?S.events.map(e=>{const s=evSkin(e),on=evOn(e);return `<div class="li" style="align-items:flex-start"><div><b>${esc(e.name)}</b> <span class="tag">${on?'En cours':e.start>today()?'À venir':'Terminé'}</span><div class="mu">${esc(e.desc)} · du ${esc(e.start)} au ${esc(e.end)}</div></div><div style="width:190px;flex:none">${on||G.owned.includes(s.id)?card(s,'shop'):''}</div></div>`}).join(''):'<p class="mu">Aucun événement.</p>'}</div>`,
+closet:()=>`<div class="panel"><div class="eb">Ta collection</div><h1>👕 Mon dressing</h1><div class="grid">${G.owned.map(id=>card(skin(id),'closet')).join('')}</div></div>`,
+ideas:()=>`<div class="panel" style="max-width:700px;margin:auto"><div class="eb">Tu as la parole</div><h1>💡 Proposer une mise à jour</h1><p class="mu">Une idée de skin, d’énigme, de fonctionnalité ? Dis-nous !</p><label>Ton idée</label><textarea id="idea" rows="5" maxlength="600"></textarea><button onclick="sendIdea()">Envoyer</button></div>`,
+settings:()=>`<div class="panel" style="max-width:700px;margin:auto"><div class="eb">Personnalisation</div><h1>⚙️ Réglages</h1><label>Changer l’arrière-plan avec une image</label><input type="file" accept="image/*" onchange="setBg(this.files[0])"><button class="sec" onclick="resetBg()">Arrière-plan par défaut</button><p class="mu">L’image reste sur ton appareil.</p></div>`,
+create:()=>!unlocked?`<div class="panel" style="max-width:420px;margin:auto"><div class="eb">Accès protégé</div><h1>🔒 Création</h1><label>Code</label><input id="code" type="password" inputmode="numeric" onkeydown="if(event.key==='Enter')unlock()"><button onclick="unlock()">Entrer</button></div>`:
+`<div class="panel"><div class="eb">Créateur</div><h1>🛠️ Création</h1><p class="mu">${db?'Tout ce que tu crées est visible et achetable par les autres joueurs connectés.':'Mode local : visible seulement sur cet appareil (publie la page pour partager).'}</p><button class="sec" onclick="lock()">🔒 Verrouiller</button></div>
+<div class="two"><div class="panel"><h2>Nouveau skin</h2>${sf('s')}<button onclick="addSkin()">Ajouter à la boutique</button></div>
+<div class="panel"><h2>Nouvel événement</h2><label>Nom</label><input id="en" maxlength="40"><label>Description</label><input id="ed" maxlength="120"><div class="row"><div><label>Début</label><input id="ea" type="date"></div><div><label>Fin</label><input id="eb" type="date"></div></div><label>Skin de l’événement</label>${sf('v')}<button onclick="addEvent()">Créer l’événement</button></div></div>
+<div class="panel"><h2>Événements</h2>${S.events.map(e=>`<div class="li"><span>${esc(e.name)} <span class="mu">${esc(e.start)} → ${esc(e.end)}</span></span><button class="dan" onclick="if(confirm('Supprimer ?'))rm('events','${e.id}')">🗑️</button></div>`).join('')||'<p class="mu">Aucun.</p>'}</div>
+<div class="panel"><h2>Idées reçues (${S.ideas.length})</h2>${S.ideas.map(i=>`<div class="li"><span>${esc(i.text)} <span class="mu">— ${esc(i.by)}</span></span><button class="dan" onclick="rm('ideas','${i.id}')">🗑️</button></div>`).join('')||'<p class="mu">Aucune idée pour l’instant.</p>'}</div>`};
+
+// Ajout de l'onglet 'account' dans la navigation
+const NAV=[['home','Accueil'],['account','👤 Compte'],['puzzle','Énigmes'],['shop','Boutique'],['events','Événements'],['closet','Dressing'],['ideas','Idées'],['settings','Réglages'],['create','🔒 Création']];
+function go(p){page=p;if(p==='create'&&unlocked)watchIdeas();if(p==='puzzle'&&!cur&&picked===null)nextQ();render()}
+function soft(){const a=document.activeElement;if(a&&a.closest&&a.closest('#v')&&/INPUT|TEXTAREA/.test(a.tagName))return;render()}
+function render(){$('#nav').innerHTML=NAV.map(([k,n])=>`<button class="${k===page?'on':''}" onclick="go('${k}')">${n}</button>`).join('');$('#v').innerHTML=PG[page]();$('#c').textContent=G.carrots}
+nextQ();applyBg();init();
+</script></body></html>
